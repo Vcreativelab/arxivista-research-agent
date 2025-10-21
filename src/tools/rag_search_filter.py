@@ -1,8 +1,16 @@
-# It Retrieves relevant research content from the Pinecone vector database
-# based on ArXive ID
+# src/tools/rag_search_filter.py
+# Retrieves relevant research content from the Pinecone vector database
+# filtered by ArXiv ID.
 
-from langchain_pinecone import PineconeVectorStore
-from src.config import embeddings, INDEX_NAME  # Import shared config
+import streamlit as st
+from langchain.vectorstores import Pinecone
+from src.config import embeddings, INDEX_NAME
+
+
+@st.cache_resource
+def get_vectorstore():
+    """Initialize and cache Pinecone vectorstore."""
+    return Pinecone.from_existing_index(index_name=INDEX_NAME, embedding=embeddings)
 
 
 def rag_search_filter(query: str, arxiv_id: str, top_k: int = 6):
@@ -17,9 +25,21 @@ def rag_search_filter(query: str, arxiv_id: str, top_k: int = 6):
     Returns:
         list: List of dictionaries with keys "text" and "source".
     """
-    vectorstore = PineconeVectorStore(index_name=INDEX_NAME, embedding=embeddings)
+    vectorstore = get_vectorstore()
 
-    # Perform filtered similarity search
-    results = vectorstore.similarity_search(query, k=top_k, filter={"arxiv_id": arxiv_id})
+    # Perform filtered similarity search (only returns chunks from that paper)
+    results = vectorstore.similarity_search(
+        query,
+        k=top_k,
+        filter={"arxiv_id": arxiv_id}
+    )
 
-    return [{"text": r.page_content, "source": r.metadata.get("source", "")} for r in results]
+    return [
+        {
+            "text": r.page_content,
+            "source": r.metadata.get("source", ""),
+            "title": r.metadata.get("title", "Unknown"),
+            "arxiv_id": r.metadata.get("arxiv_id", arxiv_id)
+        }
+        for r in results
+    ]

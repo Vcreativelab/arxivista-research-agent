@@ -1,7 +1,14 @@
-# It Retrieves relevant research content from the Pinecone vector database.
+# src/tools/rag_search.py
 
-from langchain_pinecone import PineconeVectorStore
-from src.config import embeddings, INDEX_NAME  # Import shared config
+import streamlit as st
+from langchain.vectorstores import Pinecone
+from src.config import embeddings, INDEX_NAME
+
+
+@st.cache_resource
+def get_vectorstore():
+    """Initialize and cache Pinecone vectorstore."""
+    return Pinecone.from_existing_index(index_name=INDEX_NAME, embedding=embeddings)
 
 
 def rag_search(query: str, top_k: int = 5):
@@ -13,9 +20,17 @@ def rag_search(query: str, top_k: int = 5):
         top_k (int): Number of top matches to return.
 
     Returns:
-        list: List of dictionaries with keys "text" and "source".
+        list: List of dictionaries with keys "text", "title", "source", "arxiv_id".
     """
-    vectorstore = PineconeVectorStore(index_name=INDEX_NAME, embedding=embeddings)
-
+    vectorstore = get_vectorstore()
     results = vectorstore.similarity_search(query, k=top_k)
-    return [{"text": r.page_content, "source": r.metadata.get("source", "")} for r in results]
+
+    return [
+        {
+            "text": r.page_content,
+            "title": r.metadata.get("title", "Unknown"),
+            "source": r.metadata.get("source", ""),
+            "arxiv_id": r.metadata.get("arxiv_id", "")
+        }
+        for r in results
+    ]

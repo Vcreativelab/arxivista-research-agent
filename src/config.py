@@ -23,7 +23,8 @@ if not OPENAI_API_KEY:
     print("⚠️ OpenAI API key is missing. You will need to enter it manually when prompted.")
 
 # Global Embeddings Model (Used by all tools)
-embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+embeddings = OpenAIEmbeddings(model="text-embedding-3-small",
+                              openai_api_key=OPENAI_API_KEY)
 
 # Pinecone Configuration
 INDEX_NAME = "research-knowledge"

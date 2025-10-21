@@ -28,9 +28,9 @@ processing_animation = load_lottie_url("https://lottie.host/5c704725-3696-45d6-8
 @st.cache_resource
 def get_pinecone_index():
     """Initializes Pinecone index only once."""
-    from src.data.embeddings import PineconeVectorStore
+    from langchain_community.vectorstores import Pinecone
     from src.config import embeddings
-    return PineconeVectorStore(index_name="research-knowledge", embedding=embeddings)
+    return Pinecone.from_existing_index(index_name="research-knowledge", embedding=embeddings)
 
 
 # Only initialize Pinecone once instead of reloading on every page switch

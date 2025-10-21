@@ -9,36 +9,41 @@ from src.config import embeddings, INDEX_NAME
 
 @st.cache_resource
 def get_vectorstore():
-    """Initialize and cache Pinecone vectorstore."""
+    """Initialize and cache Pinecone vectorstore across Streamlit pages."""
     return Pinecone.from_existing_index(index_name=INDEX_NAME, embedding=embeddings)
 
 
 def rag_search_filter(query: str, arxiv_id: str, top_k: int = 6):
     """
-    Retrieves relevant papers from Pinecone vector index filtered by ArXiv ID.
+    Retrieve relevant text chunks from Pinecone filtered by ArXiv ID.
 
     Args:
-        query (str): The search query.
+        query (str): The user's search query.
         arxiv_id (str): The specific ArXiv ID to filter results.
         top_k (int): Number of top matches to return.
 
     Returns:
-        list: List of dictionaries with keys "text" and "source".
+        list[dict]: Each dict contains text, source, title, and arxiv_id.
     """
     vectorstore = get_vectorstore()
 
-    # Perform filtered similarity search (only returns chunks from that paper)
-    results = vectorstore.similarity_search(
-        query,
-        k=top_k,
-        filter={"arxiv_id": arxiv_id}
-    )
+    try:
+        # Perform similarity search with metadata filter
+        results = vectorstore.similarity_search(
+            query,
+            k=top_k,
+            filter={"arxiv_id": arxiv_id}
+        )
+    except Exception as e:
+        print(f"⚠️ Pinecone search failed: {e}")
+        return []
 
+    # Return structured response for UI use
     return [
         {
             "text": r.page_content,
-            "source": r.metadata.get("source", ""),
-            "title": r.metadata.get("title", "Unknown"),
+            "source": r.metadata.get("source", "N/A"),
+            "title": r.metadata.get("title", "Untitled Paper"),
             "arxiv_id": r.metadata.get("arxiv_id", arxiv_id)
         }
         for r in results

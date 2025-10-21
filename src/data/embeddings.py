@@ -3,7 +3,7 @@
 import fitz  # PyMuPDF for PDF text extraction
 from concurrent.futures import ThreadPoolExecutor
 import streamlit as st
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.vectorstores import Pinecone
 from src.config import embeddings, INDEX_NAME
 

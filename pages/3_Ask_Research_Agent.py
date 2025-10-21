@@ -23,36 +23,43 @@ def load_lottie_url(url: str):
 animation = load_lottie_url("https://lottie.host/dd0aede9-2d61-4564-8c3e-b947bc3cc41d/oHPVxVk0Hl.json")
 
 # Cache the Pinecone connection (prevents reloading on every page switch)
+# Cache the Pinecone connection (prevents reloading on every page switch)
 @st.cache_resource
 def get_pinecone_index():
     """Initializes Pinecone index only once."""
-    from src.data.embeddings import PineconeVectorStore
+    from langchain_community.vectorstores import Pinecone
     from src.config import embeddings
-    return PineconeVectorStore(index_name="research-knowledge", embedding=embeddings)
+    return Pinecone.from_existing_index(index_name="research-knowledge", embedding=embeddings)
 
 
-# User Input
-query = st.text_input("Enter your query:", "")
+# User Input with session state
+if "query" not in st.session_state:
+    st.session_state.query = ""
 
-if query:
-    # Create a placeholder for animations
-    animation_placeholder = st.empty()
-    text_placeholder = st.empty()
+query = st.text_input("Enter your query:", st.session_state.query)
 
-    with animation_placeholder.container():
-        st_lottie(animation, height=200, key="compiling")
-        text_placeholder.write("📋 Compiling the report...")
+if st.button("Ask Agent"):
+    if query.strip():
+        # Clear the previous query so the box resets next time
+        st.session_state.query = ""
 
-    # Run the pipeline
-    output = runnable.invoke({'input': query, 'chat_history': []})
+        # Create placeholders for animation
+        animation_placeholder = st.empty()
+        text_placeholder = st.empty()
 
-    # Generate Report
-    report = format_final_answer(output['intermediate_steps'][-1].tool_input)
+        with animation_placeholder.container():
+            st_lottie(animation, height=200, key="compiling")
+            text_placeholder.write("📋 Compiling the report...")
 
-    # Remove finalizing animation before showing final output
-    animation_placeholder.empty()
-    text_placeholder.empty()
+        # Run the pipeline
+        output = runnable.invoke({'input': query, 'chat_history': []})
+        report = format_final_answer(output['intermediate_steps'][-1].tool_input)
 
-    # Display Final Output
-    st.subheader("📜 Research Report")
-    st.markdown(report)
+        animation_placeholder.empty()
+        text_placeholder.empty()
+
+        # Display Final Output
+        st.subheader("📜 Research Report")
+        st.markdown(report)
+    else:
+        st.warning("Please enter a valid query.")

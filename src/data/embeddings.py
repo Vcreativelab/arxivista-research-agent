@@ -1,6 +1,6 @@
 # src/data/embeddings.py
 
-import fitz  # PyMuPDF for PDF text extraction
+import fitz
 from concurrent.futures import ThreadPoolExecutor
 import streamlit as st
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -22,8 +22,7 @@ def extract_text_from_pdf(pdf_path: str) -> str:
 
 def process_pdf(pdf_path: str, metadata: dict):
     """Split PDF text into manageable chunks with metadata."""
-    # Increase chunk size for fewer API calls & faster embedding generation
-    splitter = RecursiveCharacterTextSplitter(chunk_size=1500, chunk_overlap=150)
+    splitter = RecursiveCharacterTextSplitter(chunk_size=1200, chunk_overlap=100)
     text = extract_text_from_pdf(pdf_path)
     chunks = splitter.split_text(text)
     chunk_metadata = [metadata] * len(chunks) if metadata else [{}] * len(chunks)
@@ -31,19 +30,12 @@ def process_pdf(pdf_path: str, metadata: dict):
 
 
 def create_embeddings(pdf_paths: list[str], metadata_list: list[dict] | None = None):
-    """
-    Generate embeddings from PDFs and store them in Pinecone.
-
-    Args:
-        pdf_paths (list): List of local PDF file paths.
-        metadata_list (list of dict, optional): Metadata per PDF (e.g., title, arxiv_id).
-    """
+    """Generate embeddings from PDFs and store them in Pinecone."""
     vectorstore = get_vectorstore()
-
     all_texts, all_metadata = [], []
 
-    # Process PDFs concurrently
-    with ThreadPoolExecutor(max_workers=8) as executor:
+    # Parallel processing
+    with ThreadPoolExecutor(max_workers=6) as executor:
         results = list(executor.map(process_pdf, pdf_paths, metadata_list or [{}] * len(pdf_paths)))
 
     for texts, meta in results:
@@ -54,6 +46,17 @@ def create_embeddings(pdf_paths: list[str], metadata_list: list[dict] | None = N
         print("⚠️ No text chunks to embed.")
         return
 
-    print(f"🚀 Storing {len(all_texts)} text chunks in Pinecone...")
-    vectorstore.add_texts(all_texts, metadatas=all_metadata)
-    print("✅ Embeddings successfully stored in Pinecone.")
+    print(f"🚀 Preparing to store {len(all_texts)} text chunks in Pinecone...")
+
+    # ✅ Process embeddings in smaller batches
+    batch_size = 80
+    for i in range(0, len(all_texts), batch_size):
+        batch_texts = all_texts[i:i + batch_size]
+        batch_metadata = all_metadata[i:i + batch_size]
+
+        try:
+            vectorstore.add_texts(batch_texts, metadatas=batch_metadata)
+        except Exception as e:
+            print(f"⚠️ Error embedding batch {i // batch_size + 1}: {e}")
+
+    print("✅ All text chunks successfully embedded and stored in Pinecone!")

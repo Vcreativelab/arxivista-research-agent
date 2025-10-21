@@ -3,7 +3,7 @@
 # filtered by ArXiv ID.
 
 import streamlit as st
-from langchain.vectorstores import Pinecone
+from langchain_community.vectorstores import Pinecone
 from src.config import embeddings, INDEX_NAME
 
 

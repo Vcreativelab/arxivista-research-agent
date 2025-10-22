@@ -101,6 +101,12 @@ if ask_pressed:
         user_query = query
         st.session_state.query = ""  # Reset box
 
+        # Convert previous queries into LangChain-compatible chat messages
+        chat_history = []
+        for entry in st.session_state.chat_history:
+            chat_history.append({"role": "user", "content": entry["query"]})
+            chat_history.append({"role": "assistant", "content": entry["response"]})
+
         # Show animation
         animation_placeholder = st.empty()
         text_placeholder = st.empty()

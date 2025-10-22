@@ -79,7 +79,12 @@ if fetch_pressed:
                 st.markdown(f"**{paper['title']}**  \n*{', '.join(paper['authors'])}*  \n{paper['summary']}")
                 st.markdown("---")
 
-            # Add navigation hint
-            st.markdown("[➡️ Go to Build Knowledge Base](./?page=2_Build_Knowledge)"
-            )
-            st.write("DEBUG: query params:", st.experimental_get_query_params())
+            st.success(f"✅ Successfully fetched {len(papers)} papers from ArXiv.")
+            
+            # Suggestion / navigation button:
+            col_left, col_mid, col_right = st.columns([1, 2, 1])
+            with col_mid:
+                if st.button("➡️ Go to Build Knowledge Base"):
+                    st.query_params(page="2_Build_Knowledge")
+                    st.experimental_rerun()
+

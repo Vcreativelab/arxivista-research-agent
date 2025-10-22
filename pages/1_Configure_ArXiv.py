@@ -81,4 +81,4 @@ if fetch_pressed:
 
             st.success(f"✅ Successfully fetched {len(papers)} papers from ArXiv."
             ) 
-            st.page_link("2_Build_Knowledge.py", label="Page 2", icon="2️⃣")
+            st.page_link("pages/2_Build_Knowledge.py", label="Page 2", icon="2️⃣")

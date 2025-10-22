@@ -80,5 +80,6 @@ if fetch_pressed:
                 st.markdown("---")
 
             # Add navigation hint
-            st.markdown("[➡️ Go to Build Knowledge Base](./?page=2_Build_Knowledge)")
+            st.markdown("[➡️ Go to Build Knowledge Base](./?page=2_Build_Knowledge)"
             )
+            st.write("DEBUG: query params:", st.experimental_get_query_params())

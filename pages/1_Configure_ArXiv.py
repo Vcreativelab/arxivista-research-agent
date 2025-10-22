@@ -79,7 +79,6 @@ if fetch_pressed:
                 st.markdown(f"**{paper['title']}**  \n*{', '.join(paper['authors'])}*  \n{paper['summary']}")
                 st.markdown("---")
 
-           st.success(
-                        f"✅ Successfully fetched {len(papers)} papers from ArXiv.\n\n"
+            st.success(f"✅ Successfully fetched {len(papers)} papers from ArXiv.\n\n"
                         "**Next:** Move to the 'Build Knowledge Base' page to process and embed them."
-                    )
+            )

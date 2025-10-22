@@ -79,16 +79,7 @@ if fetch_pressed:
                 st.markdown(f"**{paper['title']}**  \n*{', '.join(paper['authors'])}*  \n{paper['summary']}")
                 st.markdown("---")
 
-            st.success(f"✅ Successfully fetched {len(papers)} papers from ArXiv.")
-            
-            # Suggestion / navigation button
-            col_left, col_mid, col_right = st.columns([1, 2, 1])
-            with col_mid:
-                if st.button("➡️ Go to Build Knowledge Base"):
-                    # For Streamlit < 1.31 (older versions)
-                    try:
-                        st.experimental_set_query_params(page="2_Build_Knowledge")
-                    except AttributeError:
-                        # For Streamlit >= 1.32 (new API)
-                        st.query_params = {"page": "2_Build_Knowledge"}
-                    st.experimental_rerun()
+           st.success(
+                        f"✅ Successfully fetched {len(papers)} papers from ArXiv.\n\n"
+                        "**Next:** Move to the 'Build Knowledge Base' page to process and embed them."
+                    )

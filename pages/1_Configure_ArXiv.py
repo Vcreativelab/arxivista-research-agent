@@ -10,7 +10,7 @@ st.markdown(
     "<h1 style='text-align: center;'>⚙️ <span style='color:#6C63FF;'>Configure</span> ArXiv</h1>",
     unsafe_allow_html=True
 )
-st.write("Use the controls below to select a category and fetch recent research papers from ArXiv.")
+st.markdown("### Use the controls below to select a category and fetch recent research papers from ArXiv.")
 
 # ---------------- Styling (matches other pages) ----------------
 st.markdown("""

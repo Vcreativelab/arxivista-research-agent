@@ -7,7 +7,7 @@ from src.data.dataset import fetch_arxiv_papers
 # ---------------- Page Setup ----------------
 st.set_page_config(page_title="Configure ArXiv", layout="wide")
 st.markdown(
-    "<h1 style='text-align: center;'>📚 <span style='color:#6C63FF;'>Configure</span> ArXiv</h1>",
+    "<h1 style='text-align: center;'>⚙️ <span style='color:#6C63FF;'>Configure</span> ArXiv</h1>",
     unsafe_allow_html=True
 )
 st.write("Use the controls below to select a category and fetch recent research papers from ArXiv.")
@@ -80,7 +80,5 @@ if fetch_pressed:
                 st.markdown("---")
 
             # Add navigation hint
-            st.markdown(
-                "➡️ Next, go to **[Build Knowledge Base](2_Build_Knowledge_Base)** "
-                "to process and index these papers!"
+            st.markdown("[➡️ Go to Build Knowledge Base](./?page=2_Build_Knowledge)")
             )

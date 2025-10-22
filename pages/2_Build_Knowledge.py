@@ -107,8 +107,8 @@ else:
         text_placeholder.empty()
 
         # Success message + navigation hint
-        st.success("✅ Papers processed and indexed successfully!")
-        st.markdown(
-            "➡️ Now you can move to **[Ask Research Agent](3_Ask_Research_Agent)** "
-            "to start exploring your personalized knowledge base!"
+        st.success(
+            f"✅ Papers processed and indexed successfully!\n\n"
+            "➡️ Next step: "
         )
+        st.page_link("pages/3_Ask_Research_Agent.py", label="Ask Research Agent", icon="3️⃣")

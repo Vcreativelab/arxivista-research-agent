@@ -79,6 +79,8 @@ if fetch_pressed:
                 st.markdown(f"**{paper['title']}**  \n*{', '.join(paper['authors'])}*  \n{paper['summary']}")
                 st.markdown("---")
 
-            st.success(f"✅ Successfully fetched {len(papers)} papers from ArXiv."
-            ) 
-            st.page_link("pages/2_Build_Knowledge.py", label="Page 2", icon="2️⃣")
+            st.success(
+            f"✅ Successfully fetched {len(papers)} papers from ArXiv.\n\n"
+            "➡️ Next step: "
+            )
+            st.page_link("pages/2_Build_Knowledge.py", label="Build Knowledge Base", icon="2️⃣")

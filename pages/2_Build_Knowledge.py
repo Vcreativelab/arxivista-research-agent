@@ -83,7 +83,7 @@ vector_store = get_pinecone_index()
 if "arxiv_papers" not in st.session_state:
     st.warning("⚠️ No papers fetched yet. Go to **Configure ArXiv** first.")
 else:
-    st.markdown("### ⚙️ Process and index the downloaded research papers into Pinecone")
+    st.markdown("### 🗂️ Process and index the downloaded research papers into Pinecone")
 
     col1, col2, col3 = st.columns([1.5, 1, 1.5])
     with col2:

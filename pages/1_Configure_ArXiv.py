@@ -81,10 +81,14 @@ if fetch_pressed:
 
             st.success(f"✅ Successfully fetched {len(papers)} papers from ArXiv.")
             
-            # Suggestion / navigation button:
+            # Suggestion / navigation button
             col_left, col_mid, col_right = st.columns([1, 2, 1])
             with col_mid:
                 if st.button("➡️ Go to Build Knowledge Base"):
-                    st.query_params(page="2_Build_Knowledge")
+                    # For Streamlit < 1.31 (older versions)
+                    try:
+                        st.experimental_set_query_params(page="2_Build_Knowledge")
+                    except AttributeError:
+                        # For Streamlit >= 1.32 (new API)
+                        st.query_params = {"page": "2_Build_Knowledge"}
                     st.experimental_rerun()
-

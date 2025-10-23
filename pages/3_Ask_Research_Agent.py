@@ -1,5 +1,8 @@
 # pages/3_Ask_Research_Agent.py
 
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+
 import streamlit as st
 from streamlit_lottie import st_lottie
 import requests
@@ -114,8 +117,8 @@ if ask_pressed:
             st_lottie(animation, height=200, key="compiling")
             text_placeholder.write("📋 Compiling your personalized research report...")
 
-        # Use correctly formatted chat history
-        output = runnable.invoke({'input': user_query, 'chat_history': chat_history})
+        # Use messages instead of chat_history for LangChain compatibility
+        output = runnable.invoke({'input': user_query, 'messages': chat_history})
         report = format_final_answer(output['intermediate_steps'][-1].tool_input)
 
         animation_placeholder.empty()

@@ -1,5 +1,8 @@
 # It Performs a web search using SerpAPI (Google Search API) or another provider.
 
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+
 import requests
 from src.config import SERP_API_KEY  # Import shared config
 

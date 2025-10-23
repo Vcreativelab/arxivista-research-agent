@@ -1,6 +1,9 @@
 # pages/1_Configure_ArXiv.py
 # It Fetches research papers from ArXiv.
 
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import streamlit as st
 from src.data.dataset import fetch_arxiv_papers
 

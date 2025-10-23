@@ -1,6 +1,9 @@
 # pages/2_Build_Knowledge.py
 # It Processes the papers and indexes them in Pinecone.
 
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import streamlit as st
 from streamlit_lottie import st_lottie
 import requests

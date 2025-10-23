@@ -2,6 +2,9 @@
 # defines AgentState,
 # and sets up the routing and tool execution functions.
 
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from langgraph.graph import StateGraph, END
 from langchain_core.agents import AgentAction
 from langchain_core.messages import BaseMessage
@@ -11,7 +14,7 @@ import operator
 # Define the AgentState.
 class AgentState(TypedDict):
     input: str
-    chat_history: List[BaseMessage]
+    messages: List[BaseMessage] # renamed
     intermediate_steps: Annotated[List[tuple[AgentAction, str]], operator.add]
 
 # Import tool functions from the decision module.

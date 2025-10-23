@@ -2,6 +2,9 @@
 # Retrieves relevant research content from the Pinecone vector database
 # filtered by ArXiv ID.
 
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+
 import streamlit as st
 from langchain_community.vectorstores import Pinecone
 from src.config import embeddings, INDEX_NAME

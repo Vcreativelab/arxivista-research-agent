@@ -1,5 +1,8 @@
 # It sets up the Oracle using an LLM and binds the available tools.
 
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import os
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -27,7 +30,7 @@ prompt = ChatPromptTemplate.from_messages([
     ('system', system_prompt),
     ('user', '{input}'),
     ('assistant', 'scratchpad: {scratchpad}'),
-    MessagesPlaceholder(variable_name='chat_history'),
+    MessagesPlaceholder(variable_name='messages'), # renamed
 ])
 
 # Initialize the LLM.
@@ -52,7 +55,7 @@ def create_scratchpad(intermediate_steps: list[ToolCall]) -> str:
 oracle = (
     {
         'input': lambda x: x['input'],
-        'chat_history': lambda x: x['chat_history'],
+        'chat_history': lambda x: x['messages'], # renamed
         'scratchpad': lambda x: create_scratchpad(x['intermediate_steps']),
     }
     | prompt

@@ -114,8 +114,8 @@ if ask_pressed:
             st_lottie(animation, height=200, key="compiling")
             text_placeholder.write("📋 Compiling your personalized research report...")
 
-        # Run pipeline
-        output = runnable.invoke({'input': user_query, 'chat_history': st.session_state.chat_history})
+        # Use correctly formatted chat history
+        output = runnable.invoke({'input': user_query, 'chat_history': chat_history})
         report = format_final_answer(output['intermediate_steps'][-1].tool_input)
 
         animation_placeholder.empty()

@@ -1,5 +1,8 @@
 # src/data/embeddings.py
 
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+
 import fitz
 from concurrent.futures import ThreadPoolExecutor
 import streamlit as st

@@ -55,7 +55,7 @@ def create_scratchpad(intermediate_steps: list[ToolCall]) -> str:
 oracle = (
     {
         'input': lambda x: x['input'],
-        'chat_history': lambda x: x['messages'], # renamed
+        'messages': lambda x: x['messages'], # renamed
         'scratchpad': lambda x: create_scratchpad(x['intermediate_steps']),
     }
     | prompt

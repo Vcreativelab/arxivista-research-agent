@@ -34,10 +34,14 @@ def run_oracle(state: dict) -> dict:
     action_out = AgentAction(tool=tool_name, tool_input=tool_args, log='TBD')
     return {'intermediate_steps': [action_out]}
 
+# Add a recursion guard
 def router(state: dict) -> str:
-    """Determines the next tool based on the current state's last action."""
-    if isinstance(state['intermediate_steps'], list):
-        return state['intermediate_steps'][-1].tool
+    steps = state.get('intermediate_steps', [])
+    if len(steps) > 10:
+        print("⚠️ Too many tool calls — forcing final_answer")
+        return 'final_answer'
+    if isinstance(steps, list):
+        return steps[-1].tool
     return 'final_answer'
 
 tool_str_to_func = {

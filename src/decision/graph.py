@@ -26,13 +26,15 @@ from src.tools.web_search import web_search
 from src.tools.final_answer import final_answer
 
 # Functions to execute oracle and tools.
+# Log the oracle decisions for debugging
 def run_oracle(state: dict) -> dict:
-    """Executes the oracle to decide which tool to use next."""
     out = oracle.invoke(state)
     tool_name = out.tool_calls[0]['name']
+    print(f"🧭 Oracle chose: {tool_name}")
     tool_args = out.tool_calls[0]['args']
     action_out = AgentAction(tool=tool_name, tool_input=tool_args, log='TBD')
     return {'intermediate_steps': [action_out]}
+
 
 # Add a recursion guard
 def router(state: dict) -> str:

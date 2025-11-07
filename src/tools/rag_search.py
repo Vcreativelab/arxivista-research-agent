@@ -34,7 +34,20 @@ def rag_search(query: str, top_k: int = 5):
         results = vectorstore.similarity_search(query, k=top_k)
     except Exception as e:
         print(f"⚠️ Pinecone search failed: {e}")
-        return []
+        return [{
+            "text": "RAG search failed due to Pinecone error.",
+            "title": "No Results",
+            "source": "system",
+            "arxiv_id": "N/A",
+        }]
+
+    if not results:
+        return [{
+            "text": f"No vector matches found for query: '{query}'.",
+            "title": "No RAG Results",
+            "source": "system",
+            "arxiv_id": "N/A",
+        }]
 
     # Return structured results for display in Streamlit
     return [

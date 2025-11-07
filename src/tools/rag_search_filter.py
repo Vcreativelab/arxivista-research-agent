@@ -31,7 +31,6 @@ def rag_search_filter(query: str, arxiv_id: str, top_k: int = 6):
     vectorstore = get_vectorstore()
 
     try:
-        # Perform similarity search with metadata filter
         results = vectorstore.similarity_search(
             query,
             k=top_k,
@@ -39,9 +38,25 @@ def rag_search_filter(query: str, arxiv_id: str, top_k: int = 6):
         )
     except Exception as e:
         print(f"⚠️ Pinecone search failed: {e}")
-        return []
+        return [{
+            "text": "RAG filter search failed due to Pinecone error.",
+            "title": "No Results",
+            "source": "system",
+            "arxiv_id": arxiv_id,
+        }]
 
-    # Return structured response for UI use
+    # No matches in the index
+    if not results:
+        return [{
+            "text": (
+                f"No vector matches found for ArXiv ID {arxiv_id} with query: '{query}'."
+            ),
+            "title": "No Filtered RAG Results",
+            "source": "system",
+            "arxiv_id": arxiv_id,
+        }]
+
+    # Normal response
     return [
         {
             "text": r.page_content,

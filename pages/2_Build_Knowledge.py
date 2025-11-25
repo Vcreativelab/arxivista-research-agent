@@ -60,7 +60,6 @@ st.markdown("""
 # ---------------- Lottie Animation Loader ----------------
 @st.cache_resource
 def load_lottie_url(url: str):
-    """Fetches Lottie animation JSON from an online source and caches it."""
     r = requests.get(url)
     try:
         return r.json() if r.status_code == 200 else None
@@ -74,7 +73,6 @@ processing_animation = load_lottie_url(
 # ---------------- Pinecone Index Loader ----------------
 @st.cache_resource
 def get_pinecone_index():
-    """Initializes Pinecone index only once."""
     from langchain_community.vectorstores import Pinecone
     from src.config import embeddings
     return Pinecone.from_existing_index(index_name="research-knowledge", embedding=embeddings)
@@ -93,25 +91,35 @@ else:
         process_pressed = st.button("🚀 Process & Index Papers")
 
     if process_pressed:
-        # Create placeholders for animation and text
+        # Animation placeholders
         animation_placeholder = st.empty()
         text_placeholder = st.empty()
 
         with animation_placeholder.container():
             st_lottie(processing_animation, height=200, key="processing")
-            text_placeholder.write("⚙️ Processing papers and indexing...")
+            text_placeholder.write("⚙️ Downloading PDFs, processing text, and indexing into Pinecone...")
 
-        # Process papers & create embeddings
-        pdf_paths = process_papers(st.session_state["arxiv_papers"])
-        create_embeddings(pdf_paths)
+        # ---------------- NEW PIPELINE ----------------
+        # process_papers returns (pdf_paths, metadata_list)
+        pdf_paths, metadata_list = process_papers(st.session_state["arxiv_papers"])
+
+        if not pdf_paths:
+            animation_placeholder.empty()
+            text_placeholder.empty()
+            st.error("❌ No PDFs could be processed. Check internet connection or try fewer papers.")
+            st.stop()
+
+        # create_embeddings now requires both pdf paths and their metadata
+        create_embeddings(pdf_paths, metadata_list)
+
+        # ----------------------------------------------
 
         # Clear animation
         animation_placeholder.empty()
         text_placeholder.empty()
 
-        # Success message + navigation hint
         st.success(
-            f"✅ Papers processed and indexed successfully!\n\n"
+            f"✅ Successfully processed {len(pdf_paths)} papers and indexed their content into Pinecone!\n\n"
             "➡️ Next step: "
         )
         st.page_link("pages/3_Ask_Research_Agent.py", label="Ask Research Agent", icon="3️⃣")

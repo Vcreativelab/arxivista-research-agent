@@ -1,5 +1,5 @@
 # pages/1_Configure_ArXiv.py
-# It Fetches research papers from ArXiv.
+# Fetches research papers from ArXiv.
 
 import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -15,7 +15,7 @@ st.markdown(
 )
 st.markdown("### 🎚️ Use the controls below to select a category and fetch recent research papers from ArXiv.")
 
-# ---------------- Styling (matches other pages) ----------------
+# ---------------- Styling ----------------
 st.markdown("""
     <style>
         :root {
@@ -70,7 +70,9 @@ with col2:
 # ---------------- Main Logic ----------------
 if fetch_pressed:
     with st.spinner("🔍 Fetching papers from ArXiv..."):
+
         papers = cached_fetch_arxiv(category, paper_count)
+
         if not papers:
             st.error("❌ Failed to fetch papers. Please try again later.")
         else:
@@ -79,11 +81,14 @@ if fetch_pressed:
 
             # Display paper previews
             for paper in papers:
-                st.markdown(f"**{paper['title']}**  \n*{', '.join(paper['authors'])}*  \n{paper['summary']}")
+                st.markdown(f"### 📄 {paper['title']}")
+                st.markdown(f"**Authors:** {', '.join(paper['authors'])}")
+                st.markdown(f"**ArXiv ID:** `{paper.get('arxiv_id', 'N/A')}`")
+                st.markdown(paper['summary'])
                 st.markdown("---")
 
             st.success(
-            f"✅ Successfully fetched {len(papers)} papers from ArXiv.\n\n"
-            "➡️ Next step: "
+                f"➡️ Papers loaded! Next step:"
             )
             st.page_link("pages/2_Build_Knowledge.py", label="Build Knowledge Base", icon="2️⃣")
+            

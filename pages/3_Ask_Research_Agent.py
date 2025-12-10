@@ -6,6 +6,9 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".
 import streamlit as st
 from streamlit_lottie import st_lottie
 import requests
+
+from langchain_core.messages import HumanMessage, AIMessage
+
 from src.decision.graph import runnable
 from src.tools.final_answer import format_final_answer
 
@@ -27,23 +30,18 @@ def load_lottie_url(url: str):
 
 animation = load_lottie_url("https://lottie.host/dd0aede9-2d61-4564-8c3e-b947bc3cc41d/oHPVxVk0Hl.json")
 
-# ---------------- Pinecone Index Loader ----------------
-@st.cache_resource
-def get_pinecone_index():
-    from langchain_community.vectorstores import Pinecone
-    from src.config import embeddings
-    return Pinecone.from_existing_index(index_name="research-knowledge", embedding=embeddings)
 
 # ---------------- Session State ----------------
 if "query" not in st.session_state:
     st.session_state.query = ""
+
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# ---------------- Adaptive Gradient Styling ----------------
+
+# ---------------- Styling ----------------
 st.markdown("""
     <style>
-        /* Streamlit theme-aware styling */
         :root {
             --primary-color-light: #6C63FF;
             --secondary-color-light: #00C9A7;
@@ -59,19 +57,11 @@ st.markdown("""
                 background: linear-gradient(90deg, var(--primary-color-light), var(--secondary-color-light));
                 color: var(--text-color-light);
             }
-            .stTextInput input {
-                background-color: #FFFFFF;
-                color: var(--text-color-light);
-            }
         }
 
         @media (prefers-color-scheme: dark) {
             div.stButton > button:first-child {
                 background: linear-gradient(90deg, var(--primary-color-dark), var(--secondary-color-dark));
-                color: var(--text-color-dark);
-            }
-            .stTextInput input {
-                background-color: #2B2B2B;
                 color: var(--text-color-dark);
             }
         }
@@ -90,6 +80,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+
 # ---------------- Query Input ----------------
 st.markdown("### 💬 Ask a research question below")
 query = st.text_input("Enter your query:", st.session_state.query, key="query_input")
@@ -98,17 +89,19 @@ col1, col2, col3 = st.columns([1.5, 1, 1.5])
 with col2:
     ask_pressed = st.button("Ask Agent")
 
+
 # ---------------- Main Logic ----------------
 if ask_pressed:
     if query.strip():
-        user_query = query
-        st.session_state.query = ""  # Reset box
 
-        # Convert previous queries into LangChain-compatible chat messages
-        chat_history = []
-        for entry in st.session_state.chat_history:
-            chat_history.append({"role": "user", "content": entry["query"]})
-            chat_history.append({"role": "assistant", "content": entry["response"]})
+        user_query = query
+        st.session_state.query = ""  
+
+        # Convert chat history to LangChain messages
+        messages = []
+        for item in st.session_state.chat_history:
+            messages.append(HumanMessage(content=item["query"]))
+            messages.append(AIMessage(content=item["response"]))
 
         # Show animation
         animation_placeholder = st.empty()
@@ -117,21 +110,35 @@ if ask_pressed:
             st_lottie(animation, height=200, key="compiling")
             text_placeholder.write("📋 Compiling your personalized research report...")
 
-        # Use messages instead of chat_history for LangChain compatibility
-        output = runnable.invoke({'input': user_query, 'messages': chat_history})
-        report = format_final_answer(output['intermediate_steps'][-1].tool_input)
+        # Invoke the LangGraph pipeline
+        output = runnable.invoke({
+            "input": user_query,
+            "messages": messages,
+            "intermediate_steps": [],
+            "tool_usage": {}
+        })
+
+        # Extract final report from tool log (NOT tool_input)
+        final_action = output["intermediate_steps"][-1]
+        final_output = final_action.log          # dict from final_answer()
+        report = format_final_answer(final_output)
 
         animation_placeholder.empty()
         text_placeholder.empty()
 
-        # Display Output
+        # Display report
         st.subheader("📜 Research Report")
         st.markdown(report)
 
-        # Save chat
-        st.session_state.chat_history.append({"query": user_query, "response": report})
+        # Save to history
+        st.session_state.chat_history.append({
+            "query": user_query,
+            "response": report
+        })
+
     else:
         st.warning("⚠️ Please enter a valid research question.")
+
 
 # ---------------- Chat History ----------------
 with st.expander("🕓 Show Chat History", expanded=False):

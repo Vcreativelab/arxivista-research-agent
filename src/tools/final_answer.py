@@ -1,71 +1,70 @@
-# It Combines results from ArXiv, RAG, and web search into a final response.
+# src/tools/final_answer.py
 
-from typing import Union, List
+from typing import Union, List, Dict
+
 
 def final_answer(
-        introduction: str,
-        research_steps: Union[str, List[str]],
-        main_body: str,
-        conclusion: str,
-        sources: Union[str, List[str]]
-) -> str:
+    introduction: str,
+    research_steps: Union[str, List[str]],
+    main_body: str,
+    conclusion: str,
+    sources: Union[str, List[str]]
+) -> Dict:
     """
-    Generates a research report as a plain text string.
-    This function is used as a tool in the agent pipeline.
-
-    Args:
-        introduction (str): Introduction text.
-        research_steps (Union[str, List[str]]): Research steps; if a list, each step is prefixed with '- '.
-        main_body (str): The main content of the report.
-        conclusion (str): The conclusion text.
-        sources (Union[str, List[str]]): Sources; if a list, each source is prefixed with '- '.
-
-    Returns:
-        str: The combined research report.
+    Tool used by the agent to produce a structured final answer.
+    Returns a dictionary matching the unified tool schema.
     """
+
     if isinstance(research_steps, list):
-        research_steps = '\n'.join([f'- {r}' for r in research_steps])
+        research_steps = [str(r) for r in research_steps]
+
     if isinstance(sources, list):
-        sources = '\n'.join([f'- {s}' for s in sources])
-    return (
-        f"{introduction}\n\n"
-        f"Research Steps:\n{research_steps}\n\n"
-        f"Main Body:\n{main_body}\n\n"
-        f"Conclusion:\n{conclusion}\n\n"
-        f"Sources:\n{sources}"
-    )
+        sources = [str(s) for s in sources]
+
+    return {
+        "success": True,
+        "introduction": introduction,
+        "research_steps": research_steps,
+        "main_body": main_body,
+        "conclusion": conclusion,
+        "sources": sources,
+    }
 
 
-def format_final_answer(output: dict) -> str:
+def format_final_answer(output: Dict) -> str:
     """
-    Formats the final answer output into a nicely designed report for display.
-    Expects a dictionary with keys: introduction, research_steps, main_body, conclusion, sources.
-
-    Returns:
-        str: A formatted multi-section report.
+    Convert the oracle final_answer tool output into a formatted markdown report.
     """
-    research_steps = output.get("research_steps", [])
-    if isinstance(research_steps, list):
-        research_steps = '\n'.join([f'- {r}' for r in research_steps])
+
+    intro = output.get("introduction", "N/A")
+
+    steps = output.get("research_steps", [])
+    if isinstance(steps, list):
+        steps = "\n".join([f"- {s}" for s in steps])
+
+    main_body = output.get("main_body", "N/A")
+    conclusion = output.get("conclusion", "N/A")
+
     sources = output.get("sources", [])
     if isinstance(sources, list):
-        sources = '\n'.join([f'- {s}' for s in sources])
+        sources = "\n".join([f"- {s}" for s in sources])
+
     return f"""
 INTRODUCTION
 ------------
-{output.get("introduction", "N/A")}
+{intro}
 
 RESEARCH STEPS
 --------------
-{research_steps}
+{steps}
 
 REPORT
 ------
-{output.get("main_body", "N/A")}
+{main_body}
 
 CONCLUSION
 ----------
-{output.get("conclusion", "N/A")}
+{conclusion}
 
 SOURCES
 -------

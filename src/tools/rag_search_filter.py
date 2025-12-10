@@ -1,10 +1,11 @@
 # src/tools/rag_search_filter.py
 # Retrieves relevant research content from the Pinecone vector database
-# filtered by ArXiv ID.
+# filtered by ArXiv ID. Returns unified output schema.
 
 import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
+from typing import List, Dict, Any
 import streamlit as st
 from langchain_community.vectorstores import Pinecone
 from src.config import embeddings, INDEX_NAME
@@ -16,7 +17,17 @@ def get_vectorstore():
     return Pinecone.from_existing_index(index_name=INDEX_NAME, embedding=embeddings)
 
 
-def rag_search_filter(query: str, arxiv_id: str, top_k: int = 6):
+def _wrap_response(tool: str, success: bool, results: List[Dict[str, Any]], metadata: Dict[str, Any], error: str | None = None):
+    return {
+        "tool": tool,
+        "success": success,
+        "results": results,
+        "metadata": metadata,
+        "error": error
+    }
+
+
+def rag_search_filter(query: str, arxiv_id: str, top_k: int = 6) -> Dict[str, Any]:
     """
     Retrieve relevant text chunks from Pinecone filtered by ArXiv ID.
 
@@ -26,43 +37,35 @@ def rag_search_filter(query: str, arxiv_id: str, top_k: int = 6):
         top_k (int): Number of top matches to return.
 
     Returns:
-        list[dict]: Each dict contains text, source, title, and arxiv_id.
+        dict: Unified result schema.
     """
     vectorstore = get_vectorstore()
+    metadata = {"query": query, "arxiv_id": arxiv_id, "top_k": top_k}
 
     try:
-        results = vectorstore.similarity_search(
-            query,
-            k=top_k,
-            filter={"arxiv_id": arxiv_id}
-        )
+        results = vectorstore.similarity_search(query, k=top_k, filter={"arxiv_id": arxiv_id})
     except Exception as e:
-        print(f"⚠️ Pinecone search failed: {e}")
-        return [{
-            "text": "RAG filter search failed due to Pinecone error.",
-            "title": "No Results",
-            "source": "system",
-            "arxiv_id": arxiv_id,
-        }]
+        err = f"Pinecone filtered similarity_search failed: {e}"
+        print(f"⚠️ {err}")
+        return _wrap_response("rag_search_filter", False, [], metadata, error=err)
 
-    # No matches in the index
     if not results:
-        return [{
-            "text": (
-                f"No vector matches found for ArXiv ID {arxiv_id} with query: '{query}'."
-            ),
+        msg = f"No vector matches found for ArXiv ID {arxiv_id} with query: '{query}'."
+        print(f"ℹ️ {msg}")
+        return _wrap_response("rag_search_filter", True, [{
+            "content": msg,
             "title": "No Filtered RAG Results",
             "source": "system",
-            "arxiv_id": arxiv_id,
-        }]
+            "arxiv_id": arxiv_id
+        }], metadata)
 
-    # Normal response
-    return [
-        {
-            "text": r.page_content,
-            "source": r.metadata.get("source", "N/A"),
+    normalized = []
+    for r in results:
+        normalized.append({
+            "content": getattr(r, "page_content", "") or "",
             "title": r.metadata.get("title", "Untitled Paper"),
+            "source": r.metadata.get("source", "arxiv"),
             "arxiv_id": r.metadata.get("arxiv_id", arxiv_id)
-        }
-        for r in results
-    ]
+        })
+
+    return _wrap_response("rag_search_filter", True, normalized, metadata)

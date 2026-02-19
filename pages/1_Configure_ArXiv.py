@@ -71,7 +71,8 @@ with col2:
 if fetch_pressed:
     with st.spinner("🔍 Fetching papers from ArXiv..."):
 
-        papers = cached_fetch_arxiv(category, paper_count)
+        result = cached_fetch_arxiv(category, paper_count)
+        papers = result.get("papers", [])
 
         if not papers:
             st.error("❌ Failed to fetch papers. Please try again later.")
@@ -79,7 +80,6 @@ if fetch_pressed:
             st.session_state["arxiv_papers"] = papers
             st.success(f"✅ Successfully fetched {len(papers)} papers from ArXiv.")
 
-            # Display paper previews
             for paper in papers:
                 st.markdown(f"### 📄 {paper['title']}")
                 st.markdown(f"**Authors:** {', '.join(paper['authors'])}")
@@ -87,8 +87,7 @@ if fetch_pressed:
                 st.markdown(paper['summary'])
                 st.markdown("---")
 
-            st.success(
-                f"➡️ Papers loaded! Next step:"
-            )
+            st.success("➡️ Papers loaded! Next step:")
             st.page_link("pages/2_Build_Knowledge.py", label="Build Knowledge Base", icon="2️⃣")
+
             

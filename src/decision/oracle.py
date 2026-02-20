@@ -8,7 +8,7 @@ import os
 import json
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.messages import ToolCall, AIMessage, HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage
 from dotenv import load_dotenv
 
 from src.tools.rag_search_filter import rag_search_filter
@@ -22,13 +22,20 @@ load_dotenv()
 
 # ---------------- System Prompt ----------------
 system_prompt = (
-    "You are the Oracle — an AI controller deciding which tool to call next.\n"
+    "You are the Oracle — an AI controller deciding which tool to call next.\n\n"
+
+    "Available tools and when to use them:\n"
+    "- fetch_arxiv: Use when the user asks to find or retrieve NEW research papers from arXiv.\n"
+    "- rag_search: Use when answering questions from the EXISTING knowledge base.\n"
+    "- rag_search_filter: Use when searching within the knowledge base but filtered by arxiv_id.\n"
+    "- web_search: Use when the question requires real-time or general internet information.\n"
+    "- final_answer: Use when you have enough information to produce the final response.\n\n"
+
     "Rules:\n"
-    "- Choose the best tool based on the user's query and prior tool results.\n"
     "- Do NOT use any tool more than twice.\n"
-    "- If you already have enough relevant information, call 'final_answer'.\n"
-    "- If the question is conceptual or opinion-based, call 'final_answer'.\n"
-    "- Avoid loops; if in doubt, call 'final_answer'.\n"
+    "- If sufficient information exists, call final_answer.\n"
+    "- Avoid loops.\n"
+    "- If unsure, call final_answer.\n"
 )
 
 
@@ -38,10 +45,12 @@ def create_scratchpad(intermediate_steps):
     Convert tool call logs into clean readable JSON blocks.
     """
     lines = []
+
     for action in intermediate_steps:
-        if isinstance(action.log, dict):  # our new unified schema
-            tool_block = json.dumps(action.log, indent=2)
-        else:
+        try:
+            tool_output = json.loads(action.log)
+            tool_block = json.dumps(tool_output, indent=2)
+        except Exception:
             tool_block = str(action.log)
 
         lines.append(
@@ -51,7 +60,7 @@ def create_scratchpad(intermediate_steps):
         )
 
     return "\n\n---\n\n".join(lines)
-
+    
 
 # ---------------- Oracle Pipeline ----------------
 prompt = ChatPromptTemplate.from_messages([

@@ -6,6 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".
 import streamlit as st
 from streamlit_lottie import st_lottie
 import requests
+import json
 
 from langchain_core.messages import HumanMessage, AIMessage
 
@@ -131,7 +132,7 @@ if ask_pressed:
 
         # Extract final tool output (NOT tool_input)
         final_action = output["intermediate_steps"][-1]
-        final_output = final_action.log  # dict from final_answer()
+        final_output = json.loads(final_action.log)
 
         report = format_final_answer(final_output)
 

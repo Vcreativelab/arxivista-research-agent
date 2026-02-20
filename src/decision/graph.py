@@ -9,6 +9,7 @@ from langchain_core.agents import AgentAction
 from langchain_core.messages import BaseMessage
 from typing import List, TypedDict, Annotated, Dict
 import operator
+import json
 
 # ---------------- Agent State ----------------
 class AgentState(TypedDict):
@@ -103,8 +104,9 @@ def run_tool(state: dict) -> dict:
     action_out = AgentAction(
         tool=tool_name,
         tool_input=tool_args,
-        log=output  # Store full dict, not stringified
+        log=json.dumps(output)
     )
+
 
     return {"intermediate_steps": [action_out]}
 

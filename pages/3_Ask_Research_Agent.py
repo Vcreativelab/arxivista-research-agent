@@ -22,6 +22,16 @@ st.markdown(
 )
 
 
+# ---------------- Sequential Navigation Guard ----------------
+if "arxiv_papers" not in st.session_state:
+    st.warning("⚠️ Please fetch papers first in Configure ArXiv.")
+    st.stop()
+
+if not st.session_state.get("vectorstore_ready"):
+    st.warning("⚠️ Please build the Knowledge Base first.")
+    st.stop()
+
+
 # ---------------- Lottie Animation Loader ----------------
 @st.cache_resource
 def load_lottie_url(url: str):
@@ -37,6 +47,9 @@ animation = load_lottie_url(
 
 
 # ---------------- Session State ----------------
+if "agent_running" not in st.session_state:
+    st.session_state.agent_running = False
+
 if "query" not in st.session_state:
     st.session_state.query = ""
 
@@ -95,23 +108,46 @@ st.markdown("""
 
 # ---------------- Query Input ----------------
 st.markdown("### 💬 Ask a research question below")
-query = st.text_input("Enter your query:", st.session_state.query, key="query_input")
+query = st.text_input("Enter your query:", 
+                      st.session_state.query, 
+                      key="query_input",
+                      disabled=st.session_state.agent_running
+                     )
 
 col1, col2, col3 = st.columns([1.5, 1, 1.5])
 with col2:
-    ask_pressed = st.button("Ask Agent")
+    ask_pressed = st.button("Ask Agent",
+                           disabled=st.session_state.agent_running
+                           )
 
 
 # ---------------- Main Logic ----------------
-if ask_pressed:
+# Show which papers power the agent
+with st.expander("📚 Active Knowledge Base"):
+    indexed = st.session_state.get("indexed_papers", [])
+
+    if not indexed:
+        st.warning("⚠️ Knowledge base metadata missing.")
+    else:
+        for p in indexed:
+            st.markdown(f"- {p['title']}")
+    
+    
+
+if ask_pressed and not st.session_state.agent_running:
     if query.strip():
 
+        # Clear textbox visually + internally
         user_query = query
+        st.session_state.query_input = ""
         st.session_state.query = ""
 
         # Prepare LangChain-compatible chat history
+        MAX_HISTORY = 5
+        history = st.session_state.chat_history[-MAX_HISTORY:]
+        
         messages = []
-        for item in st.session_state.chat_history:
+        for item in history:
             messages.append(HumanMessage(content=item["query"]))
             messages.append(AIMessage(content=item["response"]))
 
@@ -123,16 +159,51 @@ if ask_pressed:
             text_placeholder.write("📋 Compiling your personalized research report...")
 
         # Call the LangGraph pipeline
-        output = runnable.invoke({
-            "input": user_query,
-            "messages": messages,
-            "intermediate_steps": [],
-            "tool_usage": {}
-        })
+        st.session_state.agent_running = True
+        try:
+            output = runnable.invoke({
+                "input": user_query,
+                "messages": messages,
+                "intermediate_steps": [],
+                "tool_usage": {}
+            })
+        except Exception as e:
+            animation_placeholder.empty()
+            text_placeholder.empty()
+            st.session_state.agent_running = False
+            st.error(f"❌ Agent execution failed: {e}")
+            st.stop()
 
         # Extract final tool output (NOT tool_input)
-        final_action = output["intermediate_steps"][-1]
-        final_output = json.loads(final_action.log)
+        steps = output.get("intermediate_steps", [])
+
+        if not steps:
+            st.error("❌ Agent failed to produce an answer.")
+            st.session_state.agent_running = False
+            animation_placeholder.empty()
+            text_placeholder.empty()
+            st.stop()
+        
+        final_action = next(
+            (s for s in reversed(steps) if s.tool == "final_answer"),
+            None
+        )
+
+        if final_action is None:
+            st.error("❌ No final answer produced.")
+            st.session_state.agent_running = False
+            animation_placeholder.empty()
+            text_placeholder.empty()
+            st.stop()
+        try:
+            final_output = json.loads(final_action.log)
+        except Exception:
+            st.error("⚠️ Agent produced invalid output.")
+            st.code(final_action.log)
+            st.session_state.agent_running = False
+            animation_placeholder.empty()
+            text_placeholder.empty()
+            st.stop()
 
         report = format_final_answer(final_output)
 
@@ -142,6 +213,8 @@ if ask_pressed:
         # Display report
         st.subheader("📜 Research Report")
         st.markdown(report)
+        
+        st.session_state.agent_running = False
 
         # Save conversation
         st.session_state.chat_history.append({

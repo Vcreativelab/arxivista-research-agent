@@ -81,13 +81,10 @@ if fetch_pressed:
             st.success(f"✅ Successfully fetched {len(papers)} papers from ArXiv.")
 
             for paper in papers:
-                st.markdown(f"### 📄 {paper['title']}")
-                st.markdown(f"**Authors:** {', '.join(paper['authors'])}")
-                st.markdown(f"**ArXiv ID:** `{paper.get('arxiv_id', 'N/A')}`")
-                st.markdown(paper['summary'])
-                st.markdown("---")
+                with st.expander(f"📄 {paper['title']}"):
+                    st.markdown(f"**Authors:** {', '.join(paper['authors'])}")
+                    st.markdown(f"**ArXiv ID:** `{paper.get('arxiv_id', 'N/A')}`")
+                    st.markdown(f"**Summary:**\n\n{paper['summary']}")
 
             st.success("➡️ Papers loaded! Next step:")
             st.page_link("pages/2_Build_Knowledge.py", label="Build Knowledge Base", icon="2️⃣")
-
-            

@@ -27,7 +27,10 @@ if "arxiv_papers" not in st.session_state:
     st.warning("⚠️ Please fetch papers first in Configure ArXiv.")
     st.stop()
 
-if not st.session_state.get("vectorstore_ready"):
+if (
+    not st.session_state.get("vectorstore_ready")
+    or "indexed_papers" not in st.session_state
+):
     st.warning("⚠️ Please build the Knowledge Base first.")
     st.stop()
 

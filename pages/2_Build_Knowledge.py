@@ -17,6 +17,31 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+
+# ---------------- Sequential Navigation Guard ----------------
+### Hard stop if Page 1 not completed
+if "arxiv_papers" not in st.session_state:
+    st.warning("⚠️ No papers fetched yet. Go to **Configure ArXiv** first.")
+    st.stop()
+
+
+# ---------------- Duplicate Build Guard ----------------
+if st.session_state.get("vectorstore_ready"):
+    st.success("✅ Knowledge base already built.")
+    st.page_link(
+        "pages/3_Ask_Research_Agent.py",
+        label="Go to Research Agent",
+        icon="🤖"
+    )
+    st.stop()
+
+
+# ---------------- Processing Lock Init ----------------
+### Initialize ONLY
+if "processing_running" not in st.session_state:
+    st.session_state.processing_running = False
+
+
 # ---------------- Gradient Styling ----------------
 st.markdown("""
     <style>
@@ -70,56 +95,62 @@ processing_animation = load_lottie_url(
     "https://lottie.host/5c704725-3696-45d6-8f23-264cc68f79d1/2zs2F5H8uY.json"
 )
 
-# ---------------- Pinecone Index Loader ----------------
-@st.cache_resource
-def get_pinecone_index():
-    from langchain_community.vectorstores import Pinecone
-    from src.config import embeddings
-    return Pinecone.from_existing_index(index_name="research-knowledge", embedding=embeddings)
-
-# Initialize Pinecone once
-vector_store = get_pinecone_index()
 
 # ---------------- Main UI ----------------
-if "arxiv_papers" not in st.session_state:
-    st.warning("⚠️ No papers fetched yet. Go to **Configure ArXiv** first.")
-else:
-    st.markdown("### 🗂️ Process and index the downloaded research papers into Pinecone")
+st.markdown("### 🗂️ Process and index the downloaded research papers into Pinecone")
+# Get a preview of fetched papers
+with st.expander("📄 Papers to be indexed"):
+    for p in st.session_state["arxiv_papers"]:
+        st.markdown(f"**{p['title']}**")
+        st.caption(", ".join(p["authors"]))
 
-    col1, col2, col3 = st.columns([1.5, 1, 1.5])
-    with col2:
-        process_pressed = st.button("🚀 Process & Index Papers")
+col1, col2, col3 = st.columns([1.5, 1, 1.5])
+with col2:
+    process_pressed = st.button(
+        "🚀 Process & Index Papers",
+        disabled=st.session_state.processing_running
+    )
 
-    if process_pressed:
-        # Animation placeholders
-        animation_placeholder = st.empty()
-        text_placeholder = st.empty()
 
-        with animation_placeholder.container():
-            st_lottie(processing_animation, height=200, key="processing")
-            text_placeholder.write("⚙️ Downloading PDFs, processing text, and indexing into Pinecone...")
+# ---------------- Processing Pipeline ----------------
+### Correct lock usage    
+if process_pressed and not st.session_state.processing_running:
+    
+    st.session_state.processing_running = True
+    
+    # Animation placeholders
+    animation_placeholder = st.empty()
+    text_placeholder = st.empty()
 
-        # ---------------- NEW PIPELINE ----------------
-        # process_papers returns (pdf_paths, metadata_list)
-        pdf_paths, metadata_list = process_papers(st.session_state["arxiv_papers"])
+    with animation_placeholder.container():
+        st_lottie(processing_animation, height=200, key="processing")
+        text_placeholder.write("⚙️ Downloading PDFs, processing text, and indexing into Pinecone...")
 
-        if not pdf_paths:
-            animation_placeholder.empty()
-            text_placeholder.empty()
-            st.error("❌ No PDFs could be processed. Check internet connection or try fewer papers.")
-            st.stop()
+    # ---------------- NEW PIPELINE ----------------
+    # process_papers returns (pdf_paths, metadata_list)
+    pdf_paths, metadata_list = process_papers(st.session_state["arxiv_papers"])
 
-        # create_embeddings now requires both pdf paths and their metadata
-        create_embeddings(pdf_paths, metadata_list)
-
-        # ----------------------------------------------
-
-        # Clear animation
+    if not pdf_paths:
         animation_placeholder.empty()
         text_placeholder.empty()
+        st.session_state.processing_running = False
+        st.error("❌ No PDFs could be processed. Check internet connection or try fewer papers.")
+        st.stop()
 
-        st.success(
-            f"✅ Successfully processed {len(pdf_paths)} papers and indexed their content into Pinecone!\n\n"
-            "➡️ Next step: "
-        )
-        st.page_link("pages/3_Ask_Research_Agent.py", label="Ask Research Agent", icon="3️⃣")
+    # create_embeddings now requires both pdf paths and their metadata
+    st.session_state["vectorstore_ready"] = False
+    create_embeddings(pdf_paths, metadata_list)
+    st.session_state["vectorstore_ready"] = True
+    # ----------------------------------------------
+
+    # Clear animation
+    animation_placeholder.empty()
+    text_placeholder.empty()
+    
+    st.session_state.processing_running = False
+
+    st.success(
+        f"✅ Successfully processed {len(pdf_paths)} papers and indexed their content into Pinecone!\n\n"
+        "➡️ Next step: "
+    )
+    st.page_link("pages/3_Ask_Research_Agent.py", label="Ask Research Agent", icon="3️⃣")

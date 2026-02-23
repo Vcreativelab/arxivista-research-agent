@@ -140,6 +140,13 @@ if process_pressed and not st.session_state.processing_running:
     # create_embeddings now requires both pdf paths and their metadata
     st.session_state["vectorstore_ready"] = False
     create_embeddings(pdf_paths, metadata_list)
+    # Mark vectorstore ready
+    st.session_state["vectorstore_ready"] = True
+
+    # Save ONLY successfully indexed papers
+    st.session_state["indexed_papers"] = list(
+        st.session_state["arxiv_papers"]
+    )
     st.session_state["vectorstore_ready"] = True
     # ----------------------------------------------
 

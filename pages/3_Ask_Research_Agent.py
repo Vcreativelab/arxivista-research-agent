@@ -56,6 +56,9 @@ if "agent_running" not in st.session_state:
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
+if "clear_query_box" not in st.session_state:
+    st.session_state.clear_query_box = False
+
 if "debug_logs" not in st.session_state:
     st.session_state.debug_logs = []
 

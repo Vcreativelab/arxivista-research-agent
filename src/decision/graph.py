@@ -27,6 +27,9 @@ from src.tools.fetch_arxiv import fetch_arxiv
 from src.tools.web_search import web_search
 from src.tools.final_answer import final_answer
 
+# ---------------- Execution Guards ----------------
+MAX_STEPS = 6
+MAX_TOOL_USAGE = 1
 
 # ---------------- Run Oracle ----------------
 def run_oracle(state: dict) -> dict:
@@ -46,35 +49,28 @@ def run_oracle(state: dict) -> dict:
     usage[tool_name] = usage.get(tool_name, 0) + 1
 
     return {
-        "intermediate_steps": [
-            AgentAction(tool=tool_name, tool_input=tool_args, log="PENDING")
-        ],
-        "tool_usage": usage
+    "intermediate_steps": [
+        AgentAction(
+            tool=tool_name,
+            tool_input=tool_args,
+            log=""
+        )
+    ]
     }
 
 
 # ---------------- Router Logic ----------------
 def router(state: dict) -> str:
-    """
-    Decides the next node based on last tool, recursion guard, and usage limits.
-    """
-    steps = state.get("intermediate_steps", [])
-    usage = state.get("tool_usage", {})
 
-    # recursion guard
-    if len(steps) > 10:
-        print("⚠️ Too many tool calls — forcing final_answer")
+    steps = state.get("intermediate_steps", [])
+
+    # -------- GLOBAL RECURSION GUARD --------
+    if len(steps) >= MAX_STEPS:
+        print("⚠️ Max steps reached — forcing final_answer")
         return "final_answer"
 
     last_action = steps[-1]
-    tool_name = last_action.tool
-
-    # tool overuse guard
-    if usage.get(tool_name, 0) > 2:
-        print(f"⚠️ Tool {tool_name} used more than twice — switching to final_answer")
-        return "final_answer"
-
-    return tool_name
+    return last_action.tool
 
 
 # ---------------- Tool Execution ----------------
@@ -87,28 +83,15 @@ tool_str_to_func = {
 }
 
 
-def run_tool(state: dict) -> dict:
-    """
-    Executes the chosen tool and returns its unified output into the state.
-    """
-    action = state["intermediate_steps"][-1]
-    tool_name = action.tool
-    tool_args = action.tool_input
-
-    print(f"🔧 TOOL EXECUTION → {tool_name}({tool_args})")
-
-    # run tool
-    output = tool_str_to_func[tool_name](**tool_args)
-
-    # update scratchpad entry
-    action_out = AgentAction(
-        tool=tool_name,
-        tool_input=tool_args,
-        log=json.dumps(output)
-    )
-
-
-    return {"intermediate_steps": [action_out]}
+return {
+    "intermediate_steps": [
+        AgentAction(
+            tool=tool_name,
+            tool_input=tool_args,
+            log="PENDING"
+        )
+    ]
+}
 
 
 # ---------------- Build Graph ----------------

@@ -53,9 +53,6 @@ animation = load_lottie_url(
 if "agent_running" not in st.session_state:
     st.session_state.agent_running = False
 
-if "query" not in st.session_state:
-    st.session_state.query = ""
-
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
@@ -111,11 +108,17 @@ st.markdown("""
 
 # ---------------- Query Input ----------------
 st.markdown("### 💬 Ask a research question below")
-query = st.text_input("Enter your query:", 
-                      st.session_state.query, 
-                      key="query_input",
-                      disabled=st.session_state.agent_running
-                     )
+
+# Safe textbox clearing BEFORE widget creation
+if st.session_state.get("clear_query_box"):
+    st.session_state["query_input"] = ""
+    st.session_state.clear_query_box = False
+
+query = st.text_input(
+    "Enter your query:",
+    key="query_input",
+    disabled=st.session_state.agent_running
+)
 
 col1, col2, col3 = st.columns([1.5, 1, 1.5])
 with col2:
@@ -138,12 +141,10 @@ with st.expander("📚 Active Knowledge Base"):
     
 
 if ask_pressed and not st.session_state.agent_running:
-    if query.strip():
-
+    if query.strip():      
         # Clear textbox visually + internally
         user_query = query
-        st.session_state.query_input = ""
-        st.session_state.query = ""
+        st.session_state.clear_query_box = True
 
         # Prepare LangChain-compatible chat history
         MAX_HISTORY = 5

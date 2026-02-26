@@ -55,8 +55,9 @@ def run_oracle(state: dict) -> dict:
             tool_input=tool_args,
             log=""
         )
-    ]
-    }
+    ],
+    "tool_usage": usage
+}
 
 
 # ---------------- Router Logic ----------------
@@ -83,15 +84,48 @@ tool_str_to_func = {
 }
 
 
-return {
-    "intermediate_steps": [
-        AgentAction(
-            tool=tool_name,
-            tool_input=tool_args,
-            log="PENDING"
-        )
-    ]
-}
+# ---------------- Run Tool ----------------
+def run_tool(state: dict) -> dict:
+    """
+    Executes the selected tool based on last AgentAction.
+    """
+    steps = state.get("intermediate_steps", [])
+    if not steps:
+        return {}
+
+    last_action = steps[-1]
+    tool_name = last_action.tool
+    tool_args = last_action.tool_input
+
+    # Tool usage enforcement
+    usage = state.get("tool_usage", {})
+    if usage.get(tool_name, 0) > MAX_TOOL_USAGE:
+        print(f"⚠️ Tool {tool_name} exceeded usage limit — forcing final_answer")
+        return {
+            "intermediate_steps": [
+                AgentAction(
+                    tool="final_answer",
+                    tool_input={"error": "Tool usage exceeded"},
+                    log=json.dumps({"error": "Tool usage exceeded"})
+                )
+            ]
+        }
+
+    tool_func = tool_str_to_func.get(tool_name)
+    if not tool_func:
+        raise ValueError(f"Unknown tool: {tool_name}")
+
+    result = tool_func.invoke(tool_args)
+
+    return {
+        "intermediate_steps": [
+            AgentAction(
+                tool=tool_name,
+                tool_input=tool_args,
+                log=json.dumps(result)
+            )
+        ]
+    }
 
 
 # ---------------- Build Graph ----------------

@@ -97,10 +97,11 @@ def run_tool(state: dict) -> dict:
     tool_name = last_action.tool
     tool_args = last_action.tool_input
 
-    # Tool usage enforcement
     usage = state.get("tool_usage", {})
+
+    # tool budget guard
     if usage.get(tool_name, 0) > MAX_TOOL_USAGE:
-        print(f"⚠️ Tool {tool_name} exceeded usage limit — forcing final_answer")
+        print(f"⚠️ Tool {tool_name} exceeded usage limit")
         return {
             "intermediate_steps": [
                 AgentAction(
@@ -115,7 +116,10 @@ def run_tool(state: dict) -> dict:
     if not tool_func:
         raise ValueError(f"Unknown tool: {tool_name}")
 
-    result = tool_func.invoke(tool_args)
+    print(f"🔧 TOOL EXECUTION → {tool_name}({tool_args})")
+
+    # NORMAL FUNCTION CALL
+    result = tool_func(**tool_args)
 
     return {
         "intermediate_steps": [

@@ -11,12 +11,21 @@ from typing import List, TypedDict, Annotated, Dict
 import operator
 import json
 
+
 # ---------------- Agent State ----------------
 class AgentState(TypedDict):
     input: str
     messages: List[BaseMessage]
+
+    # executed tools ONLY
     intermediate_steps: Annotated[List[AgentAction], operator.add]
+
+    # execution guards
     tool_usage: Dict[str, int]
+
+    # oracle planning output
+    next_tool: str
+    next_tool_args: Dict
 
 
 # ---------------- Import oracle and tools ----------------
@@ -27,51 +36,63 @@ from src.tools.fetch_arxiv import fetch_arxiv
 from src.tools.web_search import web_search
 from src.tools.final_answer import final_answer
 
+
 # ---------------- Execution Guards ----------------
 MAX_STEPS = 6
 MAX_TOOL_USAGE = 1
 
+
 # ---------------- Run Oracle ----------------
 def run_oracle(state: dict) -> dict:
     """
-    Executes the LLM-based oracle which decides the next tool call.
+    Executes the LLM oracle responsible for selecting
+    the next tool to execute.
+
+    This step performs PLANNING only.
+    No intermediate_steps are created here.
     """
+
     out = oracle.invoke(state)
 
     tool_call = out.tool_calls[0]
     tool_name = tool_call["name"]
     tool_args = tool_call["args"]
 
-    print(f"\n🧭 ORACLE → tool: {tool_name}, args: {tool_args}")
+    print(f"\n🧭 ORACLE → tool: {tool_name}")
 
-    # Update tool usage counter
     usage = state.get("tool_usage", {})
     usage[tool_name] = usage.get(tool_name, 0) + 1
 
     return {
-    "intermediate_steps": [
-        AgentAction(
-            tool=tool_name,
-            tool_input=tool_args,
-            log=""
-        )
-    ],
-    "tool_usage": usage
-}
+        "next_tool": tool_name,
+        "next_tool_args": tool_args,
+        "tool_usage": usage
+    }
 
 
 # ---------------- Router Logic ----------------
 def router(state: dict) -> str:
+    """
+    Determines which node executes next.
+
+    Enforces:
+    - global recursion guard
+    - safe oracle routing
+    """
 
     steps = state.get("intermediate_steps", [])
 
-    # -------- GLOBAL RECURSION GUARD --------
     if len(steps) >= MAX_STEPS:
-        print("⚠️ Max steps reached — forcing final_answer")
+        print("⚠️ Max execution steps reached")
         return "final_answer"
 
-    last_action = steps[-1]
-    return last_action.tool
+    next_tool = state.get("next_tool")
+
+    if not next_tool:
+        print("⚠️ Missing oracle decision")
+        return "final_answer"
+
+    return next_tool
 
 
 # ---------------- Tool Execution ----------------
@@ -84,41 +105,26 @@ tool_str_to_func = {
 }
 
 
-# ---------------- Run Tool ----------------
 def run_tool(state: dict) -> dict:
     """
-    Executes the selected tool based on last AgentAction.
+    Executes the oracle-selected tool and records
+    the completed execution into intermediate_steps.
     """
-    steps = state.get("intermediate_steps", [])
-    if not steps:
-        return {}
 
-    last_action = steps[-1]
-    tool_name = last_action.tool
-    tool_args = last_action.tool_input
+    tool_name = state["next_tool"]
+    tool_args = state["next_tool_args"]
 
     usage = state.get("tool_usage", {})
 
-    # tool budget guard
     if usage.get(tool_name, 0) > MAX_TOOL_USAGE:
-        print(f"⚠️ Tool {tool_name} exceeded usage limit")
-        return {
-            "intermediate_steps": [
-                AgentAction(
-                    tool="final_answer",
-                    tool_input={"error": "Tool usage exceeded"},
-                    log=json.dumps({"error": "Tool usage exceeded"})
-                )
-            ]
-        }
+        print(f"⚠️ Tool {tool_name} exceeded usage")
+        tool_name = "final_answer"
+        tool_args = {"error": "Tool usage exceeded"}
 
-    tool_func = tool_str_to_func.get(tool_name)
-    if not tool_func:
-        raise ValueError(f"Unknown tool: {tool_name}")
+    tool_func = tool_str_to_func[tool_name]
 
-    print(f"🔧 TOOL EXECUTION → {tool_name}({tool_args})")
+    print(f"🔧 TOOL EXECUTION → {tool_name}")
 
-    # NORMAL FUNCTION CALL
     result = tool_func(**tool_args)
 
     return {
@@ -126,7 +132,7 @@ def run_tool(state: dict) -> dict:
             AgentAction(
                 tool=tool_name,
                 tool_input=tool_args,
-                log=json.dumps(result)
+                log=json.dumps(result, default=str)
             )
         ]
     }
@@ -136,17 +142,14 @@ def run_tool(state: dict) -> dict:
 graph = StateGraph(AgentState)
 
 graph.add_node("oracle", run_oracle)
-graph.add_node("rag_search_filter", run_tool)
-graph.add_node("rag_search", run_tool)
-graph.add_node("fetch_arxiv", run_tool)
-graph.add_node("web_search", run_tool)
-graph.add_node("final_answer", run_tool)
+
+for tool in tool_str_to_func:
+    graph.add_node(tool, run_tool)
 
 graph.set_entry_point("oracle")
 
-graph.add_conditional_edges(source="oracle", path=router)
+graph.add_conditional_edges("oracle", router)
 
-# send all tools (except final_answer) back to oracle
 for tool in ["rag_search_filter", "rag_search", "fetch_arxiv", "web_search"]:
     graph.add_edge(tool, "oracle")
 

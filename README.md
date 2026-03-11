@@ -10,7 +10,7 @@ Welcome to **Arxivista**, your intelligent AI-powered research assistant built w
 
 👉 Click below to open the app:
 
-[**Launch ArxivistaResearchAgent 🔗**](https://arxivista.streamlit.app/)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://arxivista-research-agent.streamlit.app/)
 
 ---
 
